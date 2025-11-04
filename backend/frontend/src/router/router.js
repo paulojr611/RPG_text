@@ -4,11 +4,17 @@ import rpg from '../views/rpg.vue';
 import criarpersonagem from '../views/CriarPersonagem.vue';
 import status from '../views/Status.vue';
 import login from '../views/Login.vue';
+import main from '../views/Main.vue';
 
 
 const routes = [
-    {
-    path: '/',
+  {
+    path:'/',
+    name:'Main',
+    component: main,
+  },
+  {
+    path: '/login',
     name: 'Login',
     component: login,
   },
