@@ -4,8 +4,11 @@ export const gameState = {
   state: "intro",
   typingPassword: false,
   tempName: "",
+  tempCharacterName: "",
   tempEmail: "",
   tempPassword: "",
+  shopItems: [],
+  moedas: 0,
 };
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
@@ -40,6 +43,89 @@ function getApiErrorMessage(error, fallbackMessage) {
   return fallbackMessage;
 }
 
+function showMenu(say) {
+  say(
+    "Escolha uma opcao:\n1 - Se observar\n2 - Ir para combate\n3 - Ir para loja\n4 - Ir para taverna\n5 - Deslogar",
+  );
+}
+
+function showShop(say) {
+  const lines = ["Loja:", `Moedas: ${gameState.moedas}`];
+
+  if (!gameState.shopItems.length) {
+    lines.push("Nenhum item disponivel no momento.");
+  } else {
+    gameState.shopItems.forEach((item, index) => {
+      lines.push(`${index + 1} - ${item.nome} (${item.valor} moedas)`);
+      lines.push(`    ${item.descricao}`);
+    });
+  }
+
+  lines.push("Digite o numero do item para comprar ou 'voltar'.");
+  say(lines.join("\n"));
+}
+
+async function openShop(say) {
+  try {
+    const res = await axios.get(`${API}/shop/items`);
+    gameState.shopItems = Array.isArray(res.data.items) ? res.data.items : [];
+    gameState.moedas = Number(res.data.moedas ?? 0);
+    gameState.state = "shop";
+    showShop(say);
+  } catch (error) {
+    const message = getApiErrorMessage(error, "Nao foi possivel abrir a loja.");
+    say(message);
+    showMenu(say);
+  }
+}
+
+async function buyShopItem(indexInput, say) {
+  const choice = Number.parseInt(indexInput, 10);
+
+  if (!Number.isInteger(choice) || choice < 1 || choice > gameState.shopItems.length) {
+    say("Opcao invalida na loja.");
+    showShop(say);
+    return;
+  }
+
+  const selectedItem = gameState.shopItems[choice - 1];
+
+  try {
+    const res = await axios.post(`${API}/shop/buy`, {
+      item_id: selectedItem.id,
+      quantidade: 1,
+    });
+
+    gameState.moedas = Number(res.data.moedas_restantes ?? gameState.moedas);
+    say(`Voce comprou ${selectedItem.nome} por ${selectedItem.valor} moedas.`);
+    say(`Moedas restantes: ${gameState.moedas}`);
+    showShop(say);
+  } catch (error) {
+    const message = getApiErrorMessage(error, "Nao foi possivel concluir a compra.");
+    say(message);
+    showShop(say);
+  }
+}
+
+async function performLogout(say) {
+  try {
+    await axios.post(`${API}/logout`);
+  } catch {
+    // Even if API logout fails, local session must be cleared.
+  }
+
+  localStorage.removeItem("token");
+  delete axios.defaults.headers.common.Authorization;
+  gameState.typingPassword = false;
+  gameState.tempEmail = "";
+  gameState.tempPassword = "";
+  gameState.shopItems = [];
+  gameState.moedas = 0;
+  gameState.state = "login_or_register";
+  say("Logout realizado.");
+  say("Digite: login ou registrar");
+}
+
 export async function processInput(inputText, say) {
   const cmd = inputText.trim();
   const normalized = cmd.toLowerCase();
@@ -55,7 +141,7 @@ export async function processInput(inputText, say) {
         say("Digite seu email:");
         gameState.state = "login_email";
       } else if (normalized === "registrar") {
-        say("Escolha um nome:");
+        say("Digite o seu nome:");
         gameState.state = "register_name";
       } else {
         say("Nao entendi. Digite login ou registrar.");
@@ -94,6 +180,7 @@ export async function processInput(inputText, say) {
         say(`Bem-vindo de volta, ${res.data.user.name}.`);
         gameState.typingPassword = false;
         gameState.state = "playing";
+        showMenu(say);
       } catch (error) {
         const message = getApiErrorMessage(error, "Credenciais invalidas.");
         say(`${message} Tente novamente. Digite seu email:`);
@@ -108,6 +195,17 @@ export async function processInput(inputText, say) {
       }
 
       gameState.tempName = cmd;
+      say("Agora escolha o nome do seu personagem:");
+      gameState.state = "register_character_name";
+      break;
+
+    case "register_character_name":
+      if (!cmd) {
+        say("Nome do personagem vazio. Digite um nome para o personagem:");
+        break;
+      }
+
+      gameState.tempCharacterName = cmd;
       say("Digite seu email:");
       gameState.state = "register_email";
       break;
@@ -136,12 +234,14 @@ export async function processInput(inputText, say) {
       try {
         await axios.post(`${API}/register`, {
           name: gameState.tempName,
+          character_name: gameState.tempCharacterName,
           email: gameState.tempEmail,
           password: gameState.tempPassword,
         });
 
-        say("Conta criada com sucesso. Faca login.");
+        say("Conta criada com sucesso. Faca login, digite seu email:");
         gameState.typingPassword = false;
+        gameState.tempEmail = "";
         gameState.state = "login_email";
       } catch (error) {
         const message = getApiErrorMessage(error, "Erro ao criar conta.");
@@ -152,7 +252,32 @@ export async function processInput(inputText, say) {
       break;
 
     case "playing":
-      say("Login concluido. O modulo de jogo sera conectado aqui.");
+      if (cmd === "1") {
+        say("Template: observacao sera implementada depois.");
+        showMenu(say);
+      } else if (cmd === "2") {
+        say("Template: combate sera implementado depois.");
+        showMenu(say);
+      } else if (cmd === "3") {
+        await openShop(say);
+      } else if (cmd === "4") {
+        say("Template: taverna sera implementada depois.");
+        showMenu(say);
+      } else if (cmd === "5") {
+        await performLogout(say);
+      } else {
+        say("Opcao invalida.");
+        showMenu(say);
+      }
+      break;
+
+    case "shop":
+      if (normalized === "voltar" || normalized === "sair" || cmd === "0") {
+        gameState.state = "playing";
+        showMenu(say);
+      } else {
+        await buyShopItem(cmd, say);
+      }
       break;
 
     default:

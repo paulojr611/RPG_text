@@ -16,7 +16,6 @@ return new class extends Migration {
             $table->string('email')->unique();
             $table->string('password');
             $table->string('api_token', 80)->nullable()->unique();
-            // $table-> id externo do personagem    
             $table->timestamps();
         });
     }
