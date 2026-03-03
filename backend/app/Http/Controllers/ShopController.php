@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class ShopController extends Controller
 {
+    private const SHOP_TYPES = [1, 2, 3, 4, 5, 6];
+    private const CONSUMABLE_TYPE = 6;
+
     private function getUserFromRequest(Request $request): ?User
     {
         $token = str_replace('Bearer ', '', (string) $request->header('Authorization'));
@@ -36,12 +39,32 @@ class ShopController extends Controller
             return response()->json(['error' => 'Personagem nao encontrado'], 404);
         }
 
+        $validated = $request->validate([
+            'tipo' => 'nullable|integer|in:1,2,3,4,5,6',
+        ]);
+
+        $query = itens::query()
+            ->select('id', 'nome', 'descricao', 'valor', 'tipo')
+            ->orderBy('id');
+
+                //justu de ocultação de itens
+        $query->where(function ($subQuery) use ($personagem) {
+            $subQuery->where('tipo', self::CONSUMABLE_TYPE)
+                ->orWhereNotExists(function ($existsQuery) use ($personagem) {
+                    $existsQuery->select(DB::raw(1))
+                        ->from('inventario')
+                        ->whereColumn('inventario.item_id', 'itens.id')
+                        ->where('inventario.personagem_id', $personagem->id);
+                });
+        });
+
+        if (isset($validated['tipo']) && in_array((int) $validated['tipo'], self::SHOP_TYPES, true)) {
+            $query->where('tipo', (int) $validated['tipo']);
+        }
+
         return response()->json([
             'moedas' => $personagem->moedas,
-            'items' => itens::query()
-                ->select('id', 'nome', 'descricao', 'valor', 'tipo')
-                ->orderBy('id')
-                ->get(),
+            'items' => $query->get(),
         ]);
     }
 
@@ -68,6 +91,21 @@ class ShopController extends Controller
                 return response()->json(['error' => 'Personagem nao encontrado'], 404);
             }
 
+            $entry = inventario::where('personagem_id', $personagem->id)
+                ->where('item_id', $item->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ((int) $item->tipo !== self::CONSUMABLE_TYPE) {
+                if ($entry) {
+                    return response()->json(['error' => 'Voce ja possui este item'], 422);
+                }
+
+                if ($quantity > 1) {
+                    return response()->json(['error' => 'Nao e permitido comprar mais de uma unidade desse item'], 422);
+                }
+            }
+
             $total = $item->valor * $quantity;
 
             if ($personagem->moedas < $total) {
@@ -75,11 +113,6 @@ class ShopController extends Controller
             }
 
             $personagem->decrement('moedas', $total);
-
-            $entry = inventario::where('personagem_id', $personagem->id)
-                ->where('item_id', $item->id)
-                ->lockForUpdate()
-                ->first();
 
             if ($entry) {
                 $entry->increment('quantidade', $quantity);
@@ -106,4 +139,3 @@ class ShopController extends Controller
         return $result;
     }
 }
-
