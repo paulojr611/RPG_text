@@ -5,8 +5,8 @@ export const gameState = {
   tempCharacterName: "",
   tempEmail: "",
   tempPassword: "",
+  observeInventoryItems: [],
   shopItems: [],
   shopType: null,
   moedas: 0,
 };
-

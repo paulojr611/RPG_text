@@ -9,7 +9,16 @@ import {
     performLogout,
 } from "./modules/authEngine";
 import { showMainMenu, showShopTypeMenu } from "./modules/menuEngine";
-import { handleShopInput, handleShopTypeInput } from "./modules/shopEngine";
+import {
+    handleShopInput,
+    handleShopPostBuyInput,
+    handleShopTypeInput,
+} from "./modules/shopEngine";
+import {
+    handleObserveInventoryInput,
+    handleObserveMenuInput,
+    openObserveMenu,
+} from "./modules/observeEngine";
 import { gameState } from "./state/gameState";
 
 export { gameState } from "./state/gameState";
@@ -63,8 +72,7 @@ export async function processInput(inputText, say) {
         case "playing":
             if (cmd === "1") // inspecionar
             {
-                say("Template: observacao sera implementada depois.");
-                showMainMenu(say);
+                openObserveMenu(say);
             } else if (cmd === "2") // combate
             {
                 say("Template: combate sera implementado depois.");
@@ -98,6 +106,18 @@ export async function processInput(inputText, say) {
 
         case "shop":
             await handleShopInput(cmd, normalized, say, showShopTypeMenu);
+            break;
+
+        case "shop_post_buy":
+            handleShopPostBuyInput(normalized, say, showMainMenu);
+            break;
+
+        case "observe_menu":
+            await handleObserveMenuInput(cmd, normalized, say, showMainMenu);
+            break;
+
+        case "observe_inventory":
+            await handleObserveInventoryInput(cmd, normalized, say);
             break;
 
         default:

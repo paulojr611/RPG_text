@@ -12,6 +12,10 @@ const SHOP_TYPES = {
   6: "Consumiveis",
 };
 
+function askForAnotherPurchase(say) {
+  say("Deseja comprar algo a mais? (s/n)");
+}
+
 function showShop(say) {
   const shopTypeName = SHOP_TYPES[gameState.shopType] || "Desconhecida";
   const lines = [`Loja de ${shopTypeName}:`, `Moedas: ${gameState.moedas}`];
@@ -80,7 +84,8 @@ async function buyShopItem(indexInput, say) {
 
     say(`Voce comprou ${selectedItem.nome} por ${selectedItem.valor} moedas.`);
     say(`Moedas restantes: ${gameState.moedas}`);
-    showShop(say);
+    gameState.state = "shop_post_buy";
+    askForAnotherPurchase(say);
   } catch (error) {
     const message = getApiErrorMessage(error, "Nao foi possivel concluir a compra.");
     say(message);
@@ -106,4 +111,21 @@ export async function handleShopInput(cmd, normalized, say, showShopTypeMenu) {
   }
 
   await buyShopItem(cmd, say);
+}
+
+export function handleShopPostBuyInput(normalized, say, showMainMenu) {
+  if (normalized === "s" || normalized === "sim") {
+    gameState.state = "shop";
+    showShop(say);
+    return;
+  }
+
+  if (normalized === "n" || normalized === "nao" || normalized === "não") {
+    gameState.state = "playing";
+    showMainMenu(say);
+    return;
+  }
+
+  say("Resposta invalida. Digite 's' para continuar comprando ou 'n' para voltar.");
+  askForAnotherPurchase(say);
 }
