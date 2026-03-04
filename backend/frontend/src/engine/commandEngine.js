@@ -15,8 +15,11 @@ import {
     handleShopTypeInput,
 } from "./modules/shopEngine";
 import {
-    handleObserveInventoryInput,
+    handleEquipmentListInput,
+    handleEquipmentTypeInput,
+    handleInventoryRootInput,
     handleObserveMenuInput,
+    handleReadOnlyInventoryInput,
     openObserveMenu,
 } from "./modules/observeEngine";
 import { gameState } from "./state/gameState";
@@ -116,8 +119,24 @@ export async function processInput(inputText, say) {
             await handleObserveMenuInput(cmd, normalized, say, showMainMenu);
             break;
 
-        case "observe_inventory":
-            await handleObserveInventoryInput(cmd, normalized, say);
+        case "observe_inventory_menu":
+            await handleInventoryRootInput(cmd, normalized, say);
+            break;
+
+        case "observe_equipment_type":
+            handleEquipmentTypeInput(cmd, normalized, say);
+            break;
+
+        case "observe_equipment_list":
+            await handleEquipmentListInput(cmd, normalized, say);
+            break;
+
+        case "observe_grimoire":
+            handleReadOnlyInventoryInput(normalized, say, "observe_inventory_menu");
+            break;
+
+        case "observe_backpack":
+            handleReadOnlyInventoryInput(normalized, say, "observe_inventory_menu");
             break;
 
         default:

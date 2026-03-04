@@ -6,7 +6,6 @@ export function showMainMenu(say) {
 
 export function showShopTypeMenu(say) {
   say(
-    "Escolha o tipo da loja:\n1 - Arma\n2 - Escudo\n3 - Armadura\n4 - Magia\n5 - Anel\n6 - Consumivel\n0 - Voltar",
+    "Escolha o tipo da loja:\n1 - Arma\n2 - Escudo\n3 - Armadura\n4 - Acessorio\n5 - Magia\n6 - Consumivel\n0 - Voltar",
   );
 }
-

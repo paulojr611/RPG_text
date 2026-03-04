@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('nome');
             $table->string('descricao');
-            $table->integer('tipo'); // 1 - arma, 2 - escudo, 3 - armadura, 4 - magia, 5 - anel, 6 - consumivel
+            $table->integer('tipo'); // 1 - arma, 2 - escudo, 3 - armadura, 4 - acessorio, 5 - magia, 6 - consumivel
             $table->integer('valor')->default(0);
             $table->integer('hit')->default(0);
             $table->integer('danomin')->default(0);

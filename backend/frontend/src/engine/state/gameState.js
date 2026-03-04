@@ -6,6 +6,7 @@ export const gameState = {
   tempEmail: "",
   tempPassword: "",
   observeInventoryItems: [],
+  observeEquipmentType: null,
   shopItems: [],
   shopType: null,
   moedas: 0,

@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class CharacterController extends Controller
 {
+    private const EQUIPPABLE_TYPES = [1, 2, 3, 4];
+    private const NON_EQUIPPABLE_TYPES = [5, 6];
     private const CONSUMABLE_TYPE = 6;
 
     private function getUserFromRequest(Request $request): ?User
@@ -47,6 +49,7 @@ class CharacterController extends Controller
             ->join('itens', 'inventario.item_id', '=', 'itens.id')
             ->where('inventario.personagem_id', $personagem->id)
             ->where('inventario.equipado', true)
+            ->whereIn('itens.tipo', self::EQUIPPABLE_TYPES)
             ->select('itens.nome', 'itens.tipo')
             ->orderBy('itens.tipo')
             ->get();
@@ -135,8 +138,12 @@ class CharacterController extends Controller
 
             $item = itens::findOrFail($validated['item_id']);
 
-            if ((int) $item->tipo === self::CONSUMABLE_TYPE) {
-                return response()->json(['error' => 'Consumiveis nao podem ser equipados'], 422);
+            if (in_array((int) $item->tipo, self::NON_EQUIPPABLE_TYPES, true)) {
+                if ((int) $item->tipo === self::CONSUMABLE_TYPE) {
+                    return response()->json(['error' => 'Consumiveis nao podem ser equipados'], 422);
+                }
+
+                return response()->json(['error' => 'Magias nao podem ser equipadas'], 422);
             }
 
             if ($entry->equipado) {
@@ -171,4 +178,3 @@ class CharacterController extends Controller
         return $result;
     }
 }
-

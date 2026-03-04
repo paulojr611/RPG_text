@@ -7,36 +7,103 @@ const ITEM_TYPES = {
   1: "Arma",
   2: "Escudo",
   3: "Armadura",
-  4: "Magia",
-  5: "Anel",
+  4: "Acessorio",
+  5: "Magia",
   6: "Consumivel",
 };
 
+const EQUIPMENT_TYPES = {
+  1: "Armas",
+  2: "Escudos",
+  3: "Armaduras",
+  4: "Acessorios",
+};
+
+const EQUIPMENT_TYPE_TO_ITEM_TYPE = {
+  1: 1,
+  2: 2,
+  3: 3,
+  4: 4,
+};
+
 function showObserveMenu(say) {
-  say("Se observar:\n1 - Ver atributos\n2 - Ver inventario (equipar/desequipar)\n0 - Voltar");
+  say("Se observar:\n1 - Ver atributos\n2 - Abrir inventario\n0 - Voltar");
 }
 
-function showInventory(say) {
-  if (!gameState.observeInventoryItems.length) {
-    say("Seu inventario esta vazio.");
-    say("Digite 'voltar' para retornar.");
+function showInventoryRootMenu(say) {
+  say("Inventario:\n1 - Ver equipamentos\n2 - Ler o grimorio\n3 - Ver a mochila\n0 - Voltar");
+}
+
+function showEquipmentTypeMenu(say) {
+  say("Equipamentos:\n1 - Ver armas\n2 - Ver escudos\n3 - Ver armaduras\n4 - Ver acessorios\n0 - Voltar");
+}
+
+function getItemsByType(itemType) {
+  return gameState.observeInventoryItems.filter((item) => Number(item.tipo) === itemType);
+}
+
+function showEquipmentList(say) {
+  const selectedType = gameState.observeEquipmentType;
+  const itemType = EQUIPMENT_TYPE_TO_ITEM_TYPE[selectedType];
+  const categoryLabel = EQUIPMENT_TYPES[selectedType] || "Equipamentos";
+  const items = getItemsByType(itemType);
+
+  if (!items.length) {
+    say(`${categoryLabel}: nenhum item encontrado.`);
+    say("Digite 'voltar' para escolher outro tipo.");
     return;
   }
 
-  const lines = ["Inventario:"];
+  const lines = [`${categoryLabel}:`];
 
-  gameState.observeInventoryItems.forEach((item, index) => {
-    const tipo = ITEM_TYPES[item.tipo] || "Desconhecido";
+  items.forEach((item, index) => {
     const equipped = item.equipado ? " [EQUIPADO]" : "";
-    const equipableNote = Number(item.tipo) === 6 ? " (nao equipavel)" : "";
-
-    lines.push(
-      `${index + 1} - ${item.nome} x${item.quantidade} | ${tipo}${equipableNote}${equipped}`,
-    );
+    lines.push(`${index + 1} - ${item.nome}${equipped}`);
     lines.push(`    ${item.descricao}`);
   });
 
   lines.push("Digite o numero para equipar/desequipar ou 'voltar'.");
+  say(lines.join("\n"));
+}
+
+function showGrimoire(say) {
+  const spells = getItemsByType(5);
+
+  if (!spells.length) {
+    say("Grimorio vazio.");
+    say("Digite 'voltar' para retornar.");
+    return;
+  }
+
+  const lines = ["Grimorio:"];
+
+  spells.forEach((item, index) => {
+    lines.push(`${index + 1} - ${item.nome}`);
+    lines.push(`    ${item.descricao}`);
+  });
+
+  lines.push("Digite 'voltar' para retornar.");
+  say(lines.join("\n"));
+}
+
+function showBackpack(say) {
+  const consumables = getItemsByType(6);
+
+  if (!consumables.length) {
+    say("Mochila vazia.");
+    say("Digite 'voltar' para retornar.");
+    return;
+  }
+
+  const lines = ["Mochila:"];
+
+  consumables.forEach((item, index) => {
+    // Quantity is shown only for consumables.
+    lines.push(`${index + 1} - ${item.nome} x${item.quantidade}`);
+    lines.push(`    ${item.descricao}`);
+  });
+
+  lines.push("Digite 'voltar' para retornar.");
   say(lines.join("\n"));
 }
 
@@ -53,8 +120,8 @@ async function showAttributes(say) {
       `Vida: ${p.vidaatual}/${p.vidamax}`,
       `Mana: ${p.manaatual}/${p.manamax}`,
       `Armadura: ${p.ca}`,
-      `Redução de dano: ${p.dr}`,
-      `Experiência: ${p.xp}`,
+      `Reducao de dano: ${p.dr}`,
+      `Experiencia: ${p.xp}`,
       `Moedas: ${p.moedas}`,
     ];
 
@@ -74,35 +141,41 @@ async function showAttributes(say) {
   }
 }
 
-async function openInventory(say) {
+async function refreshInventory(say, fallbackState = "observe_menu") {
   try {
     const res = await axios.get(`${API}/character/inventory`);
     gameState.observeInventoryItems = Array.isArray(res.data.items) ? res.data.items : [];
-    gameState.state = "observe_inventory";
-    showInventory(say);
+    return true;
   } catch (error) {
     const message = getApiErrorMessage(error, "Nao foi possivel carregar inventario.");
     say(message);
-    showObserveMenu(say);
+    gameState.state = fallbackState;
+    if (fallbackState === "observe_menu") {
+      showObserveMenu(say);
+    } else if (fallbackState === "observe_inventory_menu") {
+      showInventoryRootMenu(say);
+    } else if (fallbackState === "observe_equipment_type") {
+      showEquipmentTypeMenu(say);
+    } else if (fallbackState === "observe_equipment_list") {
+      showEquipmentList(say);
+    }
+    return false;
   }
 }
 
-async function toggleEquipByIndex(cmd, say) {
+async function toggleEquipmentByIndex(cmd, say) {
+  const selectedType = gameState.observeEquipmentType;
+  const itemType = EQUIPMENT_TYPE_TO_ITEM_TYPE[selectedType];
+  const equipmentItems = getItemsByType(itemType);
   const choice = Number.parseInt(cmd, 10);
 
-  if (!Number.isInteger(choice) || choice < 1 || choice > gameState.observeInventoryItems.length) {
-    say("Opcao invalida no inventario.");
-    showInventory(say);
+  if (!Number.isInteger(choice) || choice < 1 || choice > equipmentItems.length) {
+    say("Opcao invalida nos equipamentos.");
+    showEquipmentList(say);
     return;
   }
 
-  const selected = gameState.observeInventoryItems[choice - 1];
-
-  if (Number(selected.tipo) === 6) {
-    say("Consumiveis nao podem ser equipados.");
-    showInventory(say);
-    return;
-  }
+  const selected = equipmentItems[choice - 1];
 
   try {
     const res = await axios.post(`${API}/character/toggle-equip`, {
@@ -110,11 +183,13 @@ async function toggleEquipByIndex(cmd, say) {
     });
 
     say(res.data.message || "Estado do equipamento atualizado.");
-    await openInventory(say);
+    if (await refreshInventory(say, "observe_equipment_list")) {
+      showEquipmentList(say);
+    }
   } catch (error) {
     const message = getApiErrorMessage(error, "Nao foi possivel alterar equipamento.");
     say(message);
-    showInventory(say);
+    showEquipmentList(say);
   }
 }
 
@@ -132,7 +207,10 @@ export async function handleObserveMenuInput(cmd, normalized, say, showMainMenu)
   }
 
   if (cmd === "2") {
-    await openInventory(say);
+    if (await refreshInventory(say)) {
+      gameState.state = "observe_inventory_menu";
+      showInventoryRootMenu(say);
+    }
     return;
   }
 
@@ -140,18 +218,76 @@ export async function handleObserveMenuInput(cmd, normalized, say, showMainMenu)
   showObserveMenu(say);
 }
 
-export async function handleObserveInventoryInput(cmd, normalized, say) {
+export async function handleInventoryRootInput(cmd, normalized, say) {
   if (cmd === "0" || normalized === "voltar") {
     gameState.state = "observe_menu";
     showObserveMenu(say);
     return;
   }
 
-  await toggleEquipByIndex(cmd, say);
+  if (cmd === "1") {
+    gameState.state = "observe_equipment_type";
+    showEquipmentTypeMenu(say);
+    return;
+  }
+
+  if (cmd === "2") {
+    gameState.state = "observe_grimoire";
+    showGrimoire(say);
+    return;
+  }
+
+  if (cmd === "3") {
+    gameState.state = "observe_backpack";
+    showBackpack(say);
+    return;
+  }
+
+  say("Opcao invalida.");
+  showInventoryRootMenu(say);
+}
+
+export function handleEquipmentTypeInput(cmd, normalized, say) {
+  if (cmd === "0" || normalized === "voltar") {
+    gameState.state = "observe_inventory_menu";
+    showInventoryRootMenu(say);
+    return;
+  }
+
+  const choice = Number.parseInt(cmd, 10);
+
+  if (!Number.isInteger(choice) || choice < 1 || choice > 4) {
+    say("Opcao invalida.");
+    showEquipmentTypeMenu(say);
+    return;
+  }
+
+  gameState.observeEquipmentType = choice;
+  gameState.state = "observe_equipment_list";
+  showEquipmentList(say);
+}
+
+export async function handleEquipmentListInput(cmd, normalized, say) {
+  if (cmd === "0" || normalized === "voltar") {
+    gameState.state = "observe_equipment_type";
+    showEquipmentTypeMenu(say);
+    return;
+  }
+
+  await toggleEquipmentByIndex(cmd, say);
+}
+
+export function handleReadOnlyInventoryInput(normalized, say, stateToReturn) {
+  if (normalized === "voltar" || normalized === "0") {
+    gameState.state = stateToReturn;
+    showInventoryRootMenu(say);
+    return;
+  }
+
+  say("Digite 'voltar' para retornar.");
 }
 
 export function openObserveMenu(say) {
   gameState.state = "observe_menu";
   showObserveMenu(say);
 }
-

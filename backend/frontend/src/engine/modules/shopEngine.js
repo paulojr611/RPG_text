@@ -7,8 +7,8 @@ const SHOP_TYPES = {
   1: "Armas",
   2: "Escudos",
   3: "Armaduras",
-  4: "Magias",
-  5: "Aneis",
+  4: "Acessorios",
+  5: "Magia",
   6: "Consumiveis",
 };
 
