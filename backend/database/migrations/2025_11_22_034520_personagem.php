@@ -19,10 +19,13 @@ return new class extends Migration {
             $table->integer('vidaatual')->default(10);
             $table->integer('manamax')->default(10);
             $table->integer('manaatual')->default(10);
+            $table->integer('bonusacerto')->default(0);        
             $table->integer('ca')->default(10);
             $table->integer('dr')->default(0);
+            $table->integer('danomin')->default(0);
+            $table->integer('danomax')->default(0);
             $table->integer('moedas')->default(10);
-            $table->integer('xp')->default(10);
+            $table->integer('xp')->default(0);
             $table->timestamps();
         });
 

@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('nome');
             $table->string('descricao');
+            $table->integer('compravel'); // 0 = não vai estar na loja
             $table->integer('tipo'); // 1 - arma, 2 - escudo, 3 - armadura, 4 - acessorio, 5 - magia, 6 - consumivel
             $table->integer('valor')->default(0);
             $table->integer('hit')->default(0);
@@ -25,6 +26,8 @@ return new class extends Migration {
             $table->integer('alvos')->default(0);
             $table->integer('curamin')->default(0);
             $table->integer('curamax')->default(0);
+            $table->integer('vidabonus')->default(0);
+            $table->integer('manabonus')->default(0);
             $table->timestamps();
         });
     }

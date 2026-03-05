@@ -13,6 +13,7 @@ class ShopController extends Controller
 {
     private const SHOP_TYPES = [1, 2, 3, 4, 5, 6];
     private const CONSUMABLE_TYPE = 6;
+    private const PURCHASABLE = 1;
 
     private function getUserFromRequest(Request $request): ?User
     {
@@ -45,6 +46,7 @@ class ShopController extends Controller
 
         $query = itens::query()
             ->select('id', 'nome', 'descricao', 'valor', 'tipo')
+            ->where('compravel', self::PURCHASABLE)
             ->orderBy('id');
 
                 //justu de ocultação de itens
@@ -83,6 +85,10 @@ class ShopController extends Controller
 
         $quantity = (int) ($validated['quantidade'] ?? 1);
         $item = itens::findOrFail($validated['item_id']);
+
+        if ((int) $item->compravel !== self::PURCHASABLE) {
+            return response()->json(['error' => 'Este item nao esta disponivel para compra'], 422);
+        }
 
         $result = DB::transaction(function () use ($user, $item, $quantity) {
             $personagem = Personagem::where('user_id', $user->id)->lockForUpdate()->first();

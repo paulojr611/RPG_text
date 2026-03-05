@@ -14,6 +14,7 @@ class itens extends Model
     protected $fillable = [
         'nome',
         'descricao',
+        'compravel',
         'tipo',
         'valor',
         'hit',
@@ -25,5 +26,7 @@ class itens extends Model
         'alvos',
         'curamin',
         'curamax',
+        'vidabonus',
+        'manabonus',
     ];
 }
