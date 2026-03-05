@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Models\Personagem;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -12,18 +14,26 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email|unique:users',
-            'name'     => 'required|string',
-            'password' => 'required|min:6'
+            'email'          => 'required|email|unique:users',
+            'name'           => 'required|string|max:255',
+            'password'       => 'required|min:6',
+            'character_name' => 'required|string|max:255',
         ]);
 
-        User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        return response()->json(['message' => 'Conta criada!']);
+            Personagem::create([
+                'user_id' => $user->id,
+                'nome'    => $request->character_name,
+            ]);
+        });
+
+        return response()->json(['message' => 'Conta e personagem criados com sucesso!']);
     }
 
     public function login(Request $request)
