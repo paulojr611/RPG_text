@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\inventario;
 use App\Models\itens;
+use App\Models\Atributo;
 use App\Models\Personagem;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -31,6 +32,49 @@ class CharacterController extends Controller
         return Personagem::where('user_id', $user->id)->first();
     }
 
+    private function getOrCreateAttributes(Personagem $personagem): Atributo
+    {
+        return Atributo::firstOrCreate(
+            ['personagem_id' => $personagem->id],
+            [
+                'nivel' => (int) $personagem->nivel,
+                'vidamax' => (int) $personagem->vidamax,
+                'vidaatual' => (int) $personagem->vidaatual,
+                'manamax' => (int) $personagem->manamax,
+                'manaatual' => (int) $personagem->manaatual,
+                'bonusacerto' => (int) $personagem->bonusacerto,
+                'ca' => (int) $personagem->ca,
+                'dr' => (int) $personagem->dr,
+                'danomin' => (int) $personagem->danomin,
+                'danomax' => (int) $personagem->danomax,
+                'moedas' => (int) $personagem->moedas,
+                'xp' => (int) $personagem->xp,
+            ]
+        );
+    }
+
+    private function applyItemBonuses(Atributo $atributos, object $item, int $direction = 1): void
+    {
+        $atributos->bonusacerto += $direction * (int) ($item->hit ?? 0);
+        $atributos->vidamax += $direction * (int) ($item->vidabonus ?? 0);
+        $atributos->manamax += $direction * (int) ($item->manabonus ?? 0);
+        $atributos->danomin += $direction * (int) ($item->danomin ?? 0);
+        $atributos->danomax += $direction * (int) ($item->danomax ?? 0);
+        $atributos->dr += $direction * (int) ($item->drbonus ?? 0);
+        $atributos->ca += $direction * (int) ($item->cabonus ?? 0);
+    }
+
+    private function clampCurrentResources(Atributo $atributos): void
+    {
+        if ($atributos->vidaatual > $atributos->vidamax) {
+            $atributos->vidaatual = $atributos->vidamax;
+        }
+
+        if ($atributos->manaatual > $atributos->manamax) {
+            $atributos->manaatual = $atributos->manamax;
+        }
+    }
+
     public function attributes(Request $request)
     {
         $user = $this->getUserFromRequest($request);
@@ -45,6 +89,8 @@ class CharacterController extends Controller
             return response()->json(['error' => 'Personagem nao encontrado'], 404);
         }
 
+        $atributos = $this->getOrCreateAttributes($personagem);
+
         $equipped = inventario::query()
             ->join('itens', 'inventario.item_id', '=', 'itens.id')
             ->where('inventario.personagem_id', $personagem->id)
@@ -58,18 +104,18 @@ class CharacterController extends Controller
             'personagem' => [
                 'id' => $personagem->id,
                 'nome' => $personagem->nome,
-                'nivel' => $personagem->nivel,
-                'vidaatual' => $personagem->vidaatual,
-                'vidamax' => $personagem->vidamax,
-                'manaatual' => $personagem->manaatual,
-                'manamax' => $personagem->manamax,
-                'bonusacerto' => $personagem->bonusacerto,
-                'ca' => $personagem->ca,
-                'dr' => $personagem->dr,
-                'danomin' => $personagem->danomin,
-                'danomax' => $personagem->danomax,
-                'moedas' => $personagem->moedas,
-                'xp' => $personagem->xp,
+                'nivel' => $atributos->nivel,
+                'vidaatual' => $atributos->vidaatual,
+                'vidamax' => $atributos->vidamax,
+                'manaatual' => $atributos->manaatual,
+                'manamax' => $atributos->manamax,
+                'bonusacerto' => $atributos->bonusacerto,
+                'ca' => $atributos->ca,
+                'dr' => $atributos->dr,
+                'danomin' => $atributos->danomin,
+                'danomax' => $atributos->danomax,
+                'moedas' => $atributos->moedas,
+                'xp' => $atributos->xp,
             ],
             'equipados' => $equipped,
         ]);
@@ -140,6 +186,7 @@ class CharacterController extends Controller
             }
 
             $item = itens::findOrFail($validated['item_id']);
+            $atributos = $this->getOrCreateAttributes($personagem);
 
             if (in_array((int) $item->tipo, self::NON_EQUIPPABLE_TYPES, true)) {
                 if ((int) $item->tipo === self::CONSUMABLE_TYPE) {
@@ -152,6 +199,9 @@ class CharacterController extends Controller
             if ($entry->equipado) {
                 $entry->equipado = false;
                 $entry->save();
+                $this->applyItemBonuses($atributos, $item, -1);
+                $this->clampCurrentResources($atributos);
+                $atributos->save();
 
                 return response()->json([
                     'message' => 'Item desequipado',
@@ -159,18 +209,37 @@ class CharacterController extends Controller
                 ]);
             }
 
-            $idsSameType = inventario::query()
+            $equippedSameType = inventario::query()
                 ->join('itens', 'inventario.item_id', '=', 'itens.id')
                 ->where('inventario.personagem_id', $personagem->id)
                 ->where('itens.tipo', $item->tipo)
-                ->pluck('inventario.id');
+                ->where('inventario.equipado', true)
+                ->select(
+                    'inventario.id as inventario_id',
+                    'itens.hit',
+                    'itens.vidabonus',
+                    'itens.manabonus',
+                    'itens.danomin',
+                    'itens.danomax',
+                    'itens.drbonus',
+                    'itens.cabonus'
+                )
+                ->get();
 
-            if ($idsSameType->isNotEmpty()) {
-                inventario::whereIn('id', $idsSameType)->update(['equipado' => false]);
+            if ($equippedSameType->isNotEmpty()) {
+                foreach ($equippedSameType as $equippedItem) {
+                    $this->applyItemBonuses($atributos, $equippedItem, -1);
+                }
+
+                inventario::whereIn('id', $equippedSameType->pluck('inventario_id'))
+                    ->update(['equipado' => false]);
             }
 
             $entry->equipado = true;
             $entry->save();
+            $this->applyItemBonuses($atributos, $item, 1);
+            $this->clampCurrentResources($atributos);
+            $atributos->save();
 
             return response()->json([
                 'message' => 'Item equipado',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Models\Atributo;
 use App\Models\Personagem;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -27,9 +28,13 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            Personagem::create([
+            $personagem = Personagem::create([
                 'user_id' => $user->id,
                 'nome'    => $request->character_name,
+            ]);
+
+            Atributo::create([
+                'personagem_id' => $personagem->id,
             ]);
         });
 

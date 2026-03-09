@@ -132,11 +132,19 @@ export async function processInput(inputText, say) {
             break;
 
         case "observe_grimoire":
-            handleReadOnlyInventoryInput(normalized, say, "observe_inventory_menu");
+            handleReadOnlyInventoryInput(
+                normalized,
+                say,
+                "observe_inventory_menu",
+            );
             break;
 
         case "observe_backpack":
-            handleReadOnlyInventoryInput(normalized, say, "observe_inventory_menu");
+            handleReadOnlyInventoryInput(
+                normalized,
+                say,
+                "observe_inventory_menu",
+            );
             break;
 
         default:

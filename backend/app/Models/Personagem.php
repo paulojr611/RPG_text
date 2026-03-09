@@ -20,5 +20,9 @@ class Personagem extends Model
     {
         return $this->belongsTo(User::class);
     }
-}
 
+    public function atributos()
+    {
+        return $this->hasOne(Atributo::class);
+    }
+}
