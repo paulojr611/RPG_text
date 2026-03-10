@@ -20,6 +20,7 @@ return new class extends Migration {
             $table->integer('manamax')->default(10);
             $table->integer('manaatual')->default(10);
             $table->integer('bonusacerto')->default(0);        
+            $table->integer('bonusacertomag')->default(0);        
             $table->integer('ca')->default(10);
             $table->integer('dr')->default(0);
             $table->integer('danomin')->default(0);

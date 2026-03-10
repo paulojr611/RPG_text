@@ -18,6 +18,7 @@ class itens extends Model
         'tipo',
         'valor',
         'hit',
+        'hitmag',
         'danomin',
         'danomax',
         'drbonus',

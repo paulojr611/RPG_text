@@ -43,6 +43,7 @@ class CharacterController extends Controller
                 'manamax' => (int) $personagem->manamax,
                 'manaatual' => (int) $personagem->manaatual,
                 'bonusacerto' => (int) $personagem->bonusacerto,
+                'bonusacertomag' => (int) $personagem->bonusacertomag,
                 'ca' => (int) $personagem->ca,
                 'dr' => (int) $personagem->dr,
                 'danomin' => (int) $personagem->danomin,
@@ -56,6 +57,7 @@ class CharacterController extends Controller
     private function applyItemBonuses(Atributo $atributos, object $item, int $direction = 1): void
     {
         $atributos->bonusacerto += $direction * (int) ($item->hit ?? 0);
+        $atributos->bonusacertomag += $direction * (int) ($item->hitmag ?? 0);
         $atributos->vidamax += $direction * (int) ($item->vidabonus ?? 0);
         $atributos->manamax += $direction * (int) ($item->manabonus ?? 0);
         $atributos->danomin += $direction * (int) ($item->danomin ?? 0);
@@ -110,6 +112,7 @@ class CharacterController extends Controller
                 'manaatual' => $atributos->manaatual,
                 'manamax' => $atributos->manamax,
                 'bonusacerto' => $atributos->bonusacerto,
+                'bonusacertomag' => $atributos->bonusacertomag,
                 'ca' => $atributos->ca,
                 'dr' => $atributos->dr,
                 'danomin' => $atributos->danomin,
@@ -217,6 +220,7 @@ class CharacterController extends Controller
                 ->select(
                     'inventario.id as inventario_id',
                     'itens.hit',
+                    'itens.hitmag',
                     'itens.vidabonus',
                     'itens.manabonus',
                     'itens.danomin',

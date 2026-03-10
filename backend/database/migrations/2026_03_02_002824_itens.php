@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->integer('tipo'); // 1 - arma, 2 - escudo, 3 - armadura, 4 - acessorio, 5 - magia, 6 - consumivel
             $table->integer('valor')->default(0);
             $table->integer('hit')->default(0);
+            $table->integer('hitmag')->default(0);
             $table->integer('danomin')->default(0);
             $table->integer('danomax')->default(0);
             $table->integer('drbonus')->default(0);

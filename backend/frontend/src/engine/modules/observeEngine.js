@@ -113,7 +113,7 @@ function showBackpack(say) {
     say(lines.join("\n"));
 }
 
-async function showAttributes(say) {
+async function showAttributes(say) {     // mostrar equipados/atributos
     try {
         const res = await axios.get(`${API}/character/attributes`);
         const p = res.data.personagem;
@@ -127,7 +127,8 @@ async function showAttributes(say) {
             `Nivel: ${p.nivel}`,
             `Vida: ${p.vidaatual}/${p.vidamax}`,
             `Mana: ${p.manaatual}/${p.manamax}`,
-            `Bonus de acerto: ${p.bonusacerto}`,
+            `Bonus de acerto físico: ${p.bonusacerto}`,
+            `Bonus de acerto magico: ${p.bonusacertomag}`,
             `Dano: ${p.danomin} - ${p.danomax}`,
             `Armadura: ${p.ca}`,
             `Reducao de dano: ${p.dr}`,

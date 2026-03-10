@@ -19,6 +19,7 @@ class Atributo extends Model
         'manamax',
         'manaatual',
         'bonusacerto',
+        'bonusacertomag',
         'ca',
         'dr',
         'danomin',
@@ -32,4 +33,3 @@ class Atributo extends Model
         return $this->belongsTo(Personagem::class);
     }
 }
-
